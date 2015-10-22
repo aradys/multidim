@@ -3,10 +3,10 @@
 #include "container.h"
 
 int main() {
-
-    container<int16_t,3> container1(3);
+	
+    container<float,3> container1(3);
     container<int16_t> container2(3, 5, 7);
-    container<int16_t> container3(4, 4, 4);
+    container<int16_t> container3(container2);
 
     /*
     container2.set_single_container(2, 0);
