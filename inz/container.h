@@ -1,70 +1,80 @@
 #pragma once
 
+#include <iostream>
+#include <fstream>
 #include <stdint.h>
 #include <vector>
 #include <cstring>
+#include <memory>
 
 #define CRC_INIT 0xbaba7007
 
 template <typename T_type, size_t T_dimension = 0> class container {
 
-	//structure used for loading and saving data
+    //structure used for loading and saving data
     struct head {
-		char       magic[3] = { 'C','N','T' };    // check if it is container
-        char       data_type;               // type of data
-        uint8_t    version = 1;             // 1
-        size_t     dimension;               // 1
+        char       magic = 'CNT';    // check if it is container
+        char       data_type;                     // type of data
+        uint8_t    version = 1;                   // 1
+        size_t     dimension;                     // size of dimension vector
+        uint8_t    sizeof_data_type;              // size of T_type
     };
 
     std::vector<size_t> dimension;
     std::vector<T_type> data;
     head container_head;
 
-	void set_type_in_head(head head_) {
-		if (std::is_same<T_type, float>::value) head_.data_type = 'F';
-		else if (std::is_same<T_type, int16_t>::value) head_.data_type = 'I16';
-	}
+    void set_type_in_head(head head_) {
+        if (std::is_same<T_type, float>::value){
+            head_.data_type = 'F';
+            head_.sizeof_data_type = sizeof(float);
+        }
+        else if (std::is_same<T_type, int16_t>::value){
+            head_.data_type = 'I16';
+            head_.sizeof_data_type = sizeof(int16_t);
+        }
+    }
 
-	//function used in 2 types of loading
-	container<T_type>* load_internal(std::string filename){
-		try {
-			std::ifstream file;
-			file.exceptions(std::ios::failbit | std::ios::badbit);
-			file.open(filename, std::ios::in | std::ios::binary);
+    //function used in 2 types of loading
+    container<T_type>* load_internal(std::string filename){
+        try {
+            std::ifstream file;
+            file.exceptions(std::ios::failbit | std::ios::badbit);
+            file.open(filename, std::ios::in | std::ios::binary);
 
-			auto read_crc = [&file]() -> uint32_t {
-				uint32_t result;
-				file.read(reinterpret_cast<char *>(&result), sizeof(uint32_t));
-				return result;
-			};
+            auto read_crc = [&file]() -> uint32_t {
+                uint32_t result;
+                file.read(reinterpret_cast<char *>(&result), sizeof(uint32_t));
+                return result;
+            };
 
-			// load header, verify CRC
-			head file_head;
-			file.read(reinterpret_cast<char *>(&file_head), sizeof(file_head));
-			if (read_crc() != get_crc32(&file_head, sizeof(file_head), CRC_INIT)) throw std::runtime_error("container header CRC mismatch");
-			if (sizeof(file_head.data_type) != sizeof(T_type)) throw std::runtime_error("container has invalid type");
+            // load header, verify CRC
+            head file_head;
+            file.read(reinterpret_cast<char *>(&file_head), sizeof(file_head));
+            if (read_crc() != get_crc32(&file_head, sizeof(file_head), CRC_INIT)) throw std::runtime_error("container header CRC mismatch");
+            if (sizeof(file_head.data_type) != sizeof(T_type)) throw std::runtime_error("container has invalid type");
 
-			// load size array, verify CRC
-			auto file_dimension = std::unique_ptr<size_t>(new size_t[file_head.dimension]);
-			auto file_dimension_size = file_head.dimension * sizeof(size_t);
-			file.read(reinterpret_cast<char *>(file_dimension.get()), file_dimension.size);
-			if (read_crc() != get_crc32(file_dimension.get(), file_dimension_size, CRC_INIT)) throw std::runtime_error("container dimension CRC mismatch");
+            // load size array, verify CRC
+            auto file_dimension = std::unique_ptr<size_t>(new size_t[file_head.dimension]);
+            auto file_dimension_size = file_head.dimension * sizeof(size_t);
+            file.read(reinterpret_cast<char *>(file_dimension.get()), file_dimension);
+            if (read_crc() != get_crc32(file_dimension.get(), file_dimension_size, CRC_INIT)) throw std::runtime_error("container dimension CRC mismatch");
 
-			// create container & load data into it
-			auto loaded_container = std::unique_ptr<container<T_type>>(new container<T_type>(file_head.dimension));
-			auto container_size = loaded_container.get()->count() * sizeof(T_type);
-			file.read(static_cast<char *>(loaded_container.get()->data), container_size);
-			if (read_crc() != get_crc32(loaded_container.get()->data, container_size, CRC_INIT)) throw std::runtime_error("container data CRC mismatch");
+            // create container & load data into it
+            auto loaded_container = std::unique_ptr<container<T_type>>(new container<T_type>(file_head.dimension));
+            auto container_size = loaded_container.get()->count() * sizeof(T_type);
+            file.read(static_cast<char *>(loaded_container.get()->data), container_size);
+            if (read_crc() != get_crc32(loaded_container.get()->data, container_size, CRC_INIT)) throw std::runtime_error("container data CRC mismatch");
 
-			// return result
-			auto result = loaded_container.get();
-			loaded_container.release();
-			return result;
-		}
-		catch (...) {
-			return nullptr;
-		}
-	}
+            // return result
+            auto result = loaded_container.get();
+            loaded_container.release();
+            return result;
+        }
+        catch (...) {
+            return nullptr;
+        }
+    }
 
 
     public:
@@ -73,7 +83,6 @@ template <typename T_type, size_t T_dimension = 0> class container {
 
         container(size_t T_dimension) {
             dimension.resize(T_dimension);
-			set_type_in_head(container_head);
         }
 
         template<typename... T_sizes> container(size_t size, T_sizes... sizes) {
@@ -81,13 +90,11 @@ template <typename T_type, size_t T_dimension = 0> class container {
 //            static_assert(are_size_t_compatible<T_type, T_types...>::value, "one of arguments cannot be treated as size_t");
             dimension.resize(1 + sizeof... (T_sizes));
             dimension = { size, size_t(sizes)... };
-			set_type_in_head(container_head);
         }
 
         container(const container &arg) {
             dimension = arg.dimension;
-			set_type_in_head(container_head);
-			data = arg.data;
+            data = arg.data;
         }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -125,12 +132,13 @@ template <typename T_type, size_t T_dimension = 0> class container {
 
         uint32_t get_crc32(const void* buffer, size_t size, uint32_t crc_divisor) {
             uint32_t crc = 0;
+            uint32_t i = 0;
             const uint8_t *ptr = static_cast<const uint8_t *>(buffer);
-            for (int i = 0; i <= size - 4; i =+ 4) {
+            for (i; i <= (uint32_t) size - 4; i += 4) {
                 crc = _mm_crc32_u32(crc, *reinterpret_cast<const uint32_t *>(ptr));
                 ptr += 4;
             }
-            for (i, i <= size, ++i) {
+            for (i; i < (uint32_t) size; ++i) {
                 crc = _mm_crc32_u32(crc, *(ptr++));
             }
             return crc;
@@ -139,69 +147,77 @@ template <typename T_type, size_t T_dimension = 0> class container {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         //load
 
-		container(std::string filename) : ptr(0) {
-			load_internal(filename);
-		}
+        container(std::string filename) : ptr(0) {
+            load_internal(filename);
+        }
 
-		static container &load_from_file(std::string filename) {
-			container &result = *reinterpret_cast<container *>(new char[sizeof(container)]);
-			try {
-				result.load_internal(filename);
-			}
-			catch (...) {
-				delete[] reinterpret_cast<char *>(&result);
-			}
-		}
+        static container &load_from_file(std::string filename) {
+            container &result = *reinterpret_cast<container *>(new char[sizeof(container)]);
+            try {
+                result.load_internal(filename);
+            }
+            catch (...) {
+                delete[] reinterpret_cast<char *>(&result);
+            }
+        }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         //save
 
-		bool save_to_file(container<T_type> *in, std::string filename)
-		{
-			try {
-				std::ofstream file;
-				file.exceptions(std::ios::failbit | std::ios::badbit);
-				file.open(filename, std::ios::out | std::ios::trunc | std::ios::binary);
-				const head file_head = {
-					{ 'C', 'N', 'T' },  // magic[]
-					'0',                // data_type ????????????????????????????????????  
-					1,                  // version
-					in->dimension.size, // dimension
-				};
-				set_type_in_head(file_head);
+        bool save_to_file(std::string filename)
+        {
+            try {
+                std::ofstream file;
+                file.exceptions(std::ios::failbit | std::ios::badbit);
+                file.open(filename, std::ios::out | std::ios::trunc | std::ios::binary);
 
-				auto write_crc = [&file](uint32_t crc) -> void {
-					file.write(reinterpret_cast<char *>(&crc), sizeof(uint32_t));
-				};
+                uint16_t dimension_size = dimension.size();
 
-				// write header with 32-bit crc
-				file.write(reinterpret_cast<const char *>(&file_head), sizeof(file_head));
-				write_crc(get_crc32(&file_head, sizeof(file_head), CRC_INIT));
+                container_head.dimension = dimension_size;
 
-				// write size array with 32-bit crc
-				const char *file_dimension = reinterpret_cast<const char *>(in->dimension::size);
-				const auto file_dimension_size = in->dimension * sizeof(size_t);
-				file.write(file_dimension, file_dimension_size);
-				write_crc(get_crc32(file_dimension, file_dimension_size, CRC_INIT));
+                set_type_in_head(container_head);
 
-				// write data with 32-bit crc
-				size_t buffer_size = 1;
-				for (auto index = 0u; index < in->dimension.size; ++index) {
-					buffer_size += in->dimension[index] * in->sizeof(T_type);
-				}
-				file.write(static_cast<char *>(in->data), buffer_size);
-				write_crc(get_crc32(in->data, buffer_size, CRC_INIT));
-			}
-			catch (...) {
-				return false;
-			}
-			return true;
-		}
+                auto write_crc = [&file](uint32_t crc) -> void {
+                    file.write(reinterpret_cast<char *>(&crc), sizeof(uint32_t));
+                };
+
+                // write header with 32-bit crc
+                file.write(reinterpret_cast<const char *>(&container_head), sizeof(container_head));
+                write_crc(get_crc32(&container_head, sizeof(container_head), CRC_INIT));
+
+                // write size array with 32-bit crc
+                const char *file_dimension = reinterpret_cast<const char *>(&(dimension[0]));
+                const auto file_dimension_size = dimension_size * sizeof(size_t);
+                file.write(file_dimension, file_dimension_size);
+                write_crc(get_crc32(file_dimension, file_dimension_size, CRC_INIT));
+
+                // write data with 32-bit crc
+                size_t buffer_size = 1;
+                for (auto index = 0u; index < dimension_size; ++index) {
+                    buffer_size += dimension[index] * sizeof(T_type);
+                }
+                file.write(reinterpret_cast<char *>(&(data[0])), buffer_size);
+                write_crc(get_crc32(&(data[0]), buffer_size, CRC_INIT));
+            }
+            catch (...) {
+                return false;
+            }
+            return true;
+        }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         // get & set
 
-        //not ready at all
+        template<typename... T_data> void set_data(T_type d, T_data... ds){
+            size_t data_number = 0;
+            if (T_dimension != 0){
+                for (int i = 0; i < dimension.size(); ++i){
+                    data_number += dimension[i];
+                }
+            }
+            static_assert(T_dimension == 0 || 1 + sizeof...(T_data) == data_number, "different number of dimensions");
+            data = {d, T_type(ds)...};
+        }
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
