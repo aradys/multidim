@@ -13,8 +13,8 @@ template <typename T_type, size_t T_dimension = 0> class container {
 
     //structure used for loading and saving data
     struct head {
-        char       magic = 'CNT';    // check if it is container
-        char       data_type;                     // type of data
+        int        magic = 'CNT';    // check if it is container
+        int        data_type;                     // type of data
         uint8_t    version = 1;                   // 1
         size_t     dimension;                     // size of dimension vector
         uint8_t    sizeof_data_type;              // size of T_type
@@ -24,6 +24,7 @@ template <typename T_type, size_t T_dimension = 0> class container {
     std::vector<T_type> data;
     head container_head;
 
+    // set type and size of container data in head
     void set_type_in_head(head head_) {
         if (std::is_same<T_type, float>::value){
             head_.data_type = 'F';
@@ -33,6 +34,15 @@ template <typename T_type, size_t T_dimension = 0> class container {
             head_.data_type = 'I16';
             head_.sizeof_data_type = sizeof(int16_t);
         }
+    }
+
+    // return count of elements in container
+    size_t count() const {
+        size_t result = 0;
+        for (auto index = 0u; index < dimension.size(); ++index) {
+            result += dimension[index];
+        }
+        return result;
     }
 
     //function used in 2 types of loading
@@ -57,14 +67,14 @@ template <typename T_type, size_t T_dimension = 0> class container {
             // load size array, verify CRC
             auto file_dimension = std::unique_ptr<size_t>(new size_t[file_head.dimension]);
             auto file_dimension_size = file_head.dimension * sizeof(size_t);
-            file.read(reinterpret_cast<char *>(file_dimension.get()), file_dimension);
+            file.read(reinterpret_cast<char *>(file_dimension.get()), file_dimension_size);
             if (read_crc() != get_crc32(file_dimension.get(), file_dimension_size, CRC_INIT)) throw std::runtime_error("container dimension CRC mismatch");
 
             // create container & load data into it
             auto loaded_container = std::unique_ptr<container<T_type>>(new container<T_type>(file_head.dimension));
-            auto container_size = loaded_container.get()->count() * sizeof(T_type);
-            file.read(static_cast<char *>(loaded_container.get()->data), container_size);
-            if (read_crc() != get_crc32(loaded_container.get()->data, container_size, CRC_INIT)) throw std::runtime_error("container data CRC mismatch");
+            auto container_size = loaded_container->count() * sizeof(T_type);
+            file.read(reinterpret_cast<char *>(loaded_container.get()->data[0]), container_size);
+            if (read_crc() != get_crc32(&(loaded_container.get()->data[0]), container_size, CRC_INIT)) throw std::runtime_error("container data CRC mismatch");
 
             // return result
             auto result = loaded_container.get();
@@ -155,6 +165,7 @@ template <typename T_type, size_t T_dimension = 0> class container {
             container &result = *reinterpret_cast<container *>(new char[sizeof(container)]);
             try {
                 result.load_internal(filename);
+                return result;
             }
             catch (...) {
                 delete[] reinterpret_cast<char *>(&result);
@@ -211,7 +222,7 @@ template <typename T_type, size_t T_dimension = 0> class container {
         template<typename... T_data> void set_data(T_type d, T_data... ds){
             size_t data_number = 0;
             if (T_dimension != 0){
-                for (int i = 0; i < dimension.size(); ++i){
+                for (uint16_t i = 0; i < dimension.size(); ++i){
                     data_number += dimension[i];
                 }
             }

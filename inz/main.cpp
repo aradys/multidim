@@ -11,6 +11,7 @@ int main() {
     std::cout << saving << "\n";
 
     auto myf1 = container<int16_t>::load_from_file("container2");
+    //container<int16_t> myf2("container2");
 
     system("pause");
     return 0;
