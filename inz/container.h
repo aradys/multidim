@@ -64,20 +64,19 @@ template <typename T_type, size_t T_dimension = 0> class container {
             if (container_head.sizeof_data_type != sizeof(T_type)) throw std::runtime_error("container has invalid type");
 
             // load size array, verify CRC
-            auto file_dimension = std::unique_ptr<size_t>(new size_t[container_head.dimension]);
+            /*auto file_dimension = std::unique_ptr<size_t>(new size_t[container_head.dimension]);*/
             auto file_dimension_size = container_head.dimension * sizeof(size_t);
-            file.read(reinterpret_cast<char *>(file_dimension.get()), file_dimension_size);
-            if (read_crc() != get_crc32(file_dimension.get(), file_dimension_size, CRC_INIT)) throw std::runtime_error("container dimension CRC mismatch");
+            file.read(reinterpret_cast<char *>(&dimension), file_dimension_size);
+            if (read_crc() != get_crc32(&dimension, file_dimension_size, CRC_INIT)) throw std::runtime_error("container dimension CRC mismatch");
 
             // create container & load data into it
-            auto loaded_container = std::unique_ptr<container<T_type>>(new container<T_type>(container_head.dimension));
-            auto container_size = loaded_container->count() * sizeof(T_type);
-            file.read(reinterpret_cast<char *>(loaded_container.get()->data[0]), container_size);
-            if (read_crc() != get_crc32(&(loaded_container.get()->data[0]), container_size, CRC_INIT)) throw std::runtime_error("container data CRC mismatch");
+            /*auto loaded_container = std::unique_ptr<container<T_type>>(new container<T_type>(container_head.dimension));*/
+            auto container_size = this->count() * sizeof(T_type);
+            file.read(reinterpret_cast<char *>(&data), container_size);
+            if (read_crc() != get_crc32(&data, container_size, CRC_INIT)) throw std::runtime_error("container data CRC mismatch");
 
             // return result
-            auto result = loaded_container.get();
-            loaded_container.release();
+            auto result = this;
             return result;
         }
         catch (...) {
