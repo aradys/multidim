@@ -6,6 +6,7 @@
 #include <vector>
 #include <cstring>
 #include <memory>
+#include <assert.h>
 
 #define CRC_INIT 0xbaba7007
 
@@ -32,21 +33,9 @@ template <typename T_type, size_t T_dimension = 0> class container {
             container_head.data_type = 'F';
             container_head.sizeof_data_type = sizeof(float);
         }
-        else if (std::is_same<T_type, int8_t>::value){
-            container_head.data_type = 'I8';
-            container_head.sizeof_data_type = sizeof(int8_t);
-        }
         else if (std::is_same<T_type, int16_t>::value){
             container_head.data_type = 'I16';
             container_head.sizeof_data_type = sizeof(int16_t);
-        }
-        else if (std::is_same<T_type, int32_t>::value){
-            container_head.data_type = 'I32';
-            container_head.sizeof_data_type = sizeof(int32_t);
-        }
-        else if (std::is_same<T_type, int64_t>::value){
-            container_head.data_type = 'I64';
-            container_head.sizeof_data_type = sizeof(int64_t);
         }
     }
 
@@ -244,13 +233,56 @@ template <typename T_type, size_t T_dimension = 0> class container {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         //compare
 
-        //not ready yet
-        container& get_difference(container& arg1, container& arg2) {
-            static_assert(arg1.dimension == arg2.dimension, "dimensions are different, cannot compare");
-            for (int i = 0; i < dimension; ++i) {
-                data[i] = arg1.data[i] - arg2.data[i];
+        //get difference between every data in 2 containers
+        container& get_difference(container& arg) {
+            container &result = *new container;
+            assert(dimension == arg.dimension, "dimensions are different, cannot compare");
+            assert(typeid(data[0]) == typeid(arg.data[0]), "types are different, cannot compare");
+
+            auto data_dim = this->count();
+            result.data.resize(data_dim);
+            result.dimension = dimension;
+
+            for (int i = 0; i < data_dim; ++i) {
+                result.data[i] = data[i] - arg.data[i];
             }
-            return *this;
+            return result;
+        }
+
+        //get max absolute error of all data of 2 containers
+        float get_max_absolute_error(container& arg){
+            assert(dimension == arg.dimension, "dimensions are different, cannot compare");
+            assert(typeid(data[0]) == typeid(arg.data[0]), "types are different, cannot compare");
+
+            double max_absolute_error = 0, absoulte_error = 0;
+            auto data_dim = this->count();
+
+            for (int i = 0; i < data_dim; ++i) {
+                absoulte_error = std::abs(data[i] - arg.data[i]);
+                if (absoulte_error > max_absolute_error) max_absolute_error = absoulte_error;
+            }
+
+            return max_absolute_error;
+        }
+
+        //histogram function
+
+
+
+        //draw histogram in html
+        void draw_histogram(std::string myfile){
+            ofstream myfile;
+            myfile.open("histogram.html");
+            myfile << "<!DOCTYPE html><html><head></head><body>"; //starting html
+
+            //add some html content
+            //as an example: if you have array of objects featuring the properties name & value, you can print out a new line for each property pairs like this:
+            for (int i = 0; i< reportData.length(); i++)
+                myfile << "<p><span style='font-weight: bold'>" << reportData[i].name << "</span><span>" << reportData[i].value << "</span></p>";
+
+            //ending html
+            myfile << "</body></html>";
+            myfile.close();
         }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
