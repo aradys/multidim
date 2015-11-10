@@ -128,7 +128,6 @@ template <typename T_type, size_t T_dimension = 0> class container {
         //operators
 
         container &operator=(const container &source) {
-            container_head = source.container_head;
             if (dimension != source.dimension) {
                 dimension.resize(source.dimension);
                 dimension = source.dimension;
