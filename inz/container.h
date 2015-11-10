@@ -11,6 +11,8 @@
 
 template <typename T_type, size_t T_dimension = 0> class container {
 
+    container() {}
+
     //structure used for loading and saving data
     struct head {
         int        magic = 'CNT';    // check if it is container
@@ -30,9 +32,21 @@ template <typename T_type, size_t T_dimension = 0> class container {
             container_head.data_type = 'F';
             container_head.sizeof_data_type = sizeof(float);
         }
+        else if (std::is_same<T_type, int8_t>::value){
+            container_head.data_type = 'I8';
+            container_head.sizeof_data_type = sizeof(int8_t);
+        }
         else if (std::is_same<T_type, int16_t>::value){
             container_head.data_type = 'I16';
             container_head.sizeof_data_type = sizeof(int16_t);
+        }
+        else if (std::is_same<T_type, int32_t>::value){
+            container_head.data_type = 'I32';
+            container_head.sizeof_data_type = sizeof(int32_t);
+        }
+        else if (std::is_same<T_type, int64_t>::value){
+            container_head.data_type = 'I64';
+            container_head.sizeof_data_type = sizeof(int64_t);
         }
     }
 
@@ -64,16 +78,16 @@ template <typename T_type, size_t T_dimension = 0> class container {
             if (container_head.sizeof_data_type != sizeof(T_type)) throw std::runtime_error("container has invalid type");
 
             // load size array, verify CRC
-            /*auto file_dimension = std::unique_ptr<size_t>(new size_t[container_head.dimension]);*/
+            dimension.resize(container_head.dimension);
             auto file_dimension_size = container_head.dimension * sizeof(size_t);
-            file.read(reinterpret_cast<char *>(&dimension), file_dimension_size);
-            if (read_crc() != get_crc32(&dimension, file_dimension_size, CRC_INIT)) throw std::runtime_error("container dimension CRC mismatch");
+            file.read(reinterpret_cast<char *>(&dimension[0]), file_dimension_size);
+            if (read_crc() != get_crc32(&dimension[0], file_dimension_size, CRC_INIT)) throw std::runtime_error("container dimension CRC mismatch");
 
             // create container & load data into it
-            /*auto loaded_container = std::unique_ptr<container<T_type>>(new container<T_type>(container_head.dimension));*/
+            data.resize(this->count());
             auto container_size = this->count() * sizeof(T_type);
-            file.read(reinterpret_cast<char *>(&data), container_size);
-            if (read_crc() != get_crc32(&data, container_size, CRC_INIT)) throw std::runtime_error("container data CRC mismatch");
+            file.read(reinterpret_cast<char *>(&data[0]), container_size);
+            if (read_crc() != get_crc32(&data[0], container_size, CRC_INIT)) throw std::runtime_error("container data CRC mismatch");
 
             // return result
             auto result = this;
@@ -89,6 +103,10 @@ template <typename T_type, size_t T_dimension = 0> class container {
 
         //constructors
 
+        container(std::string filename) {
+            load_internal(filename);
+        }
+
         container(size_t T_dimension) {
             dimension.resize(T_dimension);
         }
@@ -101,6 +119,7 @@ template <typename T_type, size_t T_dimension = 0> class container {
         }
 
         container(const container &arg) {
+            container_head = arg.container_head;
             dimension = arg.dimension;
             data = arg.data;
         }
@@ -109,6 +128,7 @@ template <typename T_type, size_t T_dimension = 0> class container {
         //operators
 
         container &operator=(const container &source) {
+            container_head = source.container_head;
             if (dimension != source.dimension) {
                 dimension.resize(source.dimension);
                 dimension = source.dimension;
@@ -155,18 +175,14 @@ template <typename T_type, size_t T_dimension = 0> class container {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         //load
 
-        container(std::string filename) : ptr(0) {
-            load_internal(filename);
-        }
-
         static container &load_from_file(std::string filename) {
-            container &result = *reinterpret_cast<container *>(new char[sizeof(container)]);
+            container &result = *new container;
             try {
                 result.load_internal(filename);
                 return result;
             }
             catch (...) {
-                delete[] reinterpret_cast<char *>(&result);
+                delete[] &result;
             }
         }
 
@@ -201,10 +217,7 @@ template <typename T_type, size_t T_dimension = 0> class container {
                 write_crc(get_crc32(file_dimension, file_dimension_size, CRC_INIT));
 
                 // write data with 32-bit crc
-                size_t buffer_size = 1;
-                for (auto index = 0u; index < dimension_size; ++index) {
-                    buffer_size += dimension[index] * sizeof(T_type);
-                }
+                size_t buffer_size = count()*sizeof(T_type);
                 file.write(reinterpret_cast<char *>(&(data[0])), buffer_size);
                 write_crc(get_crc32(&(data[0]), buffer_size, CRC_INIT));
             }
