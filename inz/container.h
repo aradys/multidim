@@ -41,9 +41,9 @@ template <typename T_type, size_t T_dimension = 0> class container {
 
     // return count of elements in container
     size_t count() const {
-        size_t result = 0;
+        size_t result = 1;
         for (auto index = 0u; index < dimension.size(); ++index) {
-            result += dimension[index];
+            result *= dimension[index];
         }
         return result;
     }
@@ -220,10 +220,8 @@ template <typename T_type, size_t T_dimension = 0> class container {
 
         template<typename... T_data> void set_data(T_type d, T_data... ds){
             size_t data_number = 0;
-            if (T_dimension != 0){
-                for (uint16_t i = 0; i < dimension.size(); ++i){
-                    data_number += dimension[i];
-                }
+            if (dimension.size() != 0){
+                data_number = this->count();
             }
             static_assert(T_dimension == 0 || 1 + sizeof...(T_data) == data_number, "different number of dimensions");
             data = {d, T_type(ds)...};
@@ -236,8 +234,8 @@ template <typename T_type, size_t T_dimension = 0> class container {
         //get difference between every data in 2 containers
         container& get_difference(container& arg) {
             container &result = *new container;
-            assert(dimension == arg.dimension, "dimensions are different, cannot compare");
-            assert(typeid(data[0]) == typeid(arg.data[0]), "types are different, cannot compare");
+            assert(dimension == arg.dimension);
+            assert(typeid(data[0]) == typeid(arg.data[0]));
 
             auto data_dim = this->count();
             result.data.resize(data_dim);
@@ -251,8 +249,8 @@ template <typename T_type, size_t T_dimension = 0> class container {
 
         //get max absolute error of all data of 2 containers
         float get_max_absolute_error(container& arg){
-            assert(dimension == arg.dimension, "dimensions are different, cannot compare");
-            assert(typeid(data[0]) == typeid(arg.data[0]), "types are different, cannot compare");
+            assert(dimension == arg.dimension);
+            assert(typeid(data[0]) == typeid(arg.data[0]));
 
             double max_absolute_error = 0, absoulte_error = 0;
             auto data_dim = this->count();
@@ -265,22 +263,17 @@ template <typename T_type, size_t T_dimension = 0> class container {
             return max_absolute_error;
         }
 
-        //histogram function
-
-
-
         //draw histogram in html
-        void draw_histogram(std::string myfile){
-            ofstream myfile;
-            myfile.open("histogram.html");
-            myfile << "<!DOCTYPE html><html><head></head><body>"; //starting html
-
-            //add some html content
-            //as an example: if you have array of objects featuring the properties name & value, you can print out a new line for each property pairs like this:
-            for (int i = 0; i< reportData.length(); i++)
-                myfile << "<p><span style='font-weight: bold'>" << reportData[i].name << "</span><span>" << reportData[i].value << "</span></p>";
-
-            //ending html
+        void draw_histogram(std::string filename, int bucket_size){
+            std::ofstream myfile;
+            auto nb_data = this->count();
+            myfile.open(filename);
+            myfile << "<html><head><script type = \"text/javascript\" src = \"https://www.google.com/jsapi\"></script><script type = \"text/javascript\"> google.load(\"visualization\", \"1\", { packages:[\"corechart\"] }); google.setOnLoadCallback(drawChart);";
+            myfile << "function drawChart() {var data = google.visualization.arrayToDataTable([['', 'Value']";
+            for (int i = 0; i < nb_data; i++)
+                myfile << ",[, " << data[i] << "]";
+            myfile << "]); var options = {title: 'Histogram',legend : { position: 'none' },histogram: { bucketSize: " << bucket_size <<" }, orientation: 'vertical',};";
+            myfile << "var chart = new google.visualization.Histogram(document.getElementById('chart_div'));chart.draw(data, options);}</script></head><body><div id = \"chart_div\" style = \"width: 900px; height: 500px;\"></div>";
             myfile << "</body></html>";
             myfile.close();
         }
