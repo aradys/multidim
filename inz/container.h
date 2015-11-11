@@ -237,7 +237,7 @@ template <typename T_type, size_t T_dimension = 0> class container {
             assert(dimension == arg.dimension);
             assert(typeid(data[0]) == typeid(arg.data[0]));
 
-            auto data_dim = this->count();
+            int data_dim = (int) this->count();
             result.data.resize(data_dim);
             result.dimension = dimension;
 
@@ -247,13 +247,30 @@ template <typename T_type, size_t T_dimension = 0> class container {
             return result;
         }
 
+        //get mean error
+        double get_mean_error(container& arg) {
+            assert(dimension == arg.dimension);
+            assert(typeid(data[0]) == typeid(arg.data[0]));
+
+            double mean_error = 0, sum = 0;
+            int data_dim = (int) this->count();
+
+            for (int i = 0; i < data_dim; ++i) {
+                sum += std::abs(data[i] - arg.data[i]);
+            }
+
+            mean_error = sum / data_dim;
+
+            return mean_error;
+        }
+
         //get max absolute error of all data of 2 containers
-        float get_max_absolute_error(container& arg){
+        double get_max_absolute_error(container& arg){
             assert(dimension == arg.dimension);
             assert(typeid(data[0]) == typeid(arg.data[0]));
 
             double max_absolute_error = 0, absoulte_error = 0;
-            auto data_dim = this->count();
+            int data_dim = (int) this->count();
 
             for (int i = 0; i < data_dim; ++i) {
                 absoulte_error = std::abs(data[i] - arg.data[i]);
@@ -263,14 +280,30 @@ template <typename T_type, size_t T_dimension = 0> class container {
             return max_absolute_error;
         }
 
+        //get standard deviation
+        double get_std_dev(container& arg) {
+            assert(dimension == arg.dimension);
+            assert(typeid(data[0]) == typeid(arg.data[0]));
+
+            double std_dev = 0, mean = this->get_mean_error(arg), tmp = 0;
+            int data_dim = (int) this->count();
+
+            for (int i = 0; i < data_dim; ++i) {
+                tmp += pow(((data[i] - arg.data[i]) - mean), 2);
+            }
+
+            return std_dev = pow( tmp / data_dim, 0.5);
+        }
+
+
         //draw histogram in html
-        void draw_histogram(std::string filename, int bucket_size){
+        void draw_histogram(std::string filename, float bucket_size){
             std::ofstream myfile;
-            auto nb_data = this->count();
+            int data_dim = (int) this->count();
             myfile.open(filename);
             myfile << "<html><head><script type = \"text/javascript\" src = \"https://www.google.com/jsapi\"></script><script type = \"text/javascript\"> google.load(\"visualization\", \"1\", { packages:[\"corechart\"] }); google.setOnLoadCallback(drawChart);";
             myfile << "function drawChart() {var data = google.visualization.arrayToDataTable([['', 'Value']";
-            for (int i = 0; i < nb_data; i++)
+            for (int i = 0; i < data_dim; i++)
                 myfile << ",[, " << data[i] << "]";
             myfile << "]); var options = {title: 'Histogram',legend : { position: 'none' },histogram: { bucketSize: " << bucket_size <<" }, orientation: 'vertical',};";
             myfile << "var chart = new google.visualization.Histogram(document.getElementById('chart_div'));chart.draw(data, options);}</script></head><body><div id = \"chart_div\" style = \"width: 900px; height: 500px;\"></div>";
