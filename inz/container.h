@@ -7,21 +7,26 @@
 #include <cstring>
 #include <memory>
 #include <assert.h>
+#include <omp.h>
 
 #define CRC_INIT 0xbaba7007
+#define OPENMP true
 
 template <typename T_type, size_t T_dimension = 0> class container {
 
     container() {}
 
     //structure used for loading and saving data
+    //pragma to read exact number of bytes
+#pragma pack(push,1)
     struct head {
-        int        magic = 'CNT';    // check if it is container
+        int        magic = 'CNT';                 // check if it is container
         int        data_type;                     // type of data
         uint8_t    version = 1;                   // 1
         size_t     dimension;                     // size of dimension vector
         uint8_t    sizeof_data_type;              // size of T_type
     };
+#pragma pack(pop)
 
     std::vector<size_t> dimension;
     std::vector<T_type> data;
@@ -63,31 +68,31 @@ template <typename T_type, size_t T_dimension = 0> class container {
 
             // load header, verify CRC
             file.read(reinterpret_cast<char *>(&container_head), sizeof(container_head));
-            if (read_crc() != get_crc32(&container_head, sizeof(container_head), CRC_INIT)) throw std::runtime_error("container header CRC mismatch");
-            if (container_head.sizeof_data_type != sizeof(T_type)) throw std::runtime_error("container has invalid type");
+            if (read_crc() != get_crc32(&container_head, sizeof(container_head), CRC_INIT)) throw("container header CRC mismatch");
+            if (container_head.sizeof_data_type != sizeof(T_type)) throw("container has invalid type");
 
             // load size array, verify CRC
             dimension.resize(container_head.dimension);
             auto file_dimension_size = container_head.dimension * sizeof(size_t);
             file.read(reinterpret_cast<char *>(&dimension[0]), file_dimension_size);
-            if (read_crc() != get_crc32(&dimension[0], file_dimension_size, CRC_INIT)) throw std::runtime_error("container dimension CRC mismatch");
+            if (read_crc() != get_crc32(&dimension[0], file_dimension_size, CRC_INIT)) throw("container dimension CRC mismatch");
 
             // create container & load data into it
             data.resize(this->count());
             auto container_size = this->count() * sizeof(T_type);
             file.read(reinterpret_cast<char *>(&data[0]), container_size);
-            if (read_crc() != get_crc32(&data[0], container_size, CRC_INIT)) throw std::runtime_error("container data CRC mismatch");
+            if (read_crc() != get_crc32(&data[0], container_size, CRC_INIT)) throw("container data CRC mismatch");
 
             // return result
             auto result = this;
             return result;
         }
         catch (...) {
-            return nullptr;
+            return false;
         }
     }
 
-
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     public:
 
         //constructors
@@ -184,7 +189,7 @@ template <typename T_type, size_t T_dimension = 0> class container {
                 file.exceptions(std::ios::failbit | std::ios::badbit);
                 file.open(filename, std::ios::out | std::ios::trunc | std::ios::binary);
 
-                uint16_t dimension_size = dimension.size();
+                auto dimension_size = dimension.size();
 
                 container_head.dimension = dimension_size;
 
@@ -240,7 +245,9 @@ template <typename T_type, size_t T_dimension = 0> class container {
             int data_dim = (int) this->count();
             result.data.resize(data_dim);
             result.dimension = dimension;
-
+#if OPENMP
+#pragma omp parallel for
+#endif
             for (int i = 0; i < data_dim; ++i) {
                 result.data[i] = data[i] - arg.data[i];
             }
@@ -254,7 +261,9 @@ template <typename T_type, size_t T_dimension = 0> class container {
 
             double mean_error = 0, sum = 0;
             int data_dim = (int) this->count();
-
+#if OPENMP
+#pragma omp parallel for
+#endif
             for (int i = 0; i < data_dim; ++i) {
                 sum += std::abs(data[i] - arg.data[i]);
             }
@@ -271,7 +280,9 @@ template <typename T_type, size_t T_dimension = 0> class container {
 
             double max_absolute_error = 0, absoulte_error = 0;
             int data_dim = (int) this->count();
-
+#if OPENMP
+#pragma omp parallel for
+#endif
             for (int i = 0; i < data_dim; ++i) {
                 absoulte_error = std::abs(data[i] - arg.data[i]);
                 if (absoulte_error > max_absolute_error) max_absolute_error = absoulte_error;
@@ -287,7 +298,9 @@ template <typename T_type, size_t T_dimension = 0> class container {
 
             double std_dev = 0, mean = this->get_mean_error(arg), tmp = 0;
             int data_dim = (int) this->count();
-
+#if OPENMP
+#pragma omp parallel for
+#endif
             for (int i = 0; i < data_dim; ++i) {
                 tmp += pow(((data[i] - arg.data[i]) - mean), 2);
             }
@@ -303,6 +316,9 @@ template <typename T_type, size_t T_dimension = 0> class container {
             myfile.open(filename);
             myfile << "<html><head><script type = \"text/javascript\" src = \"https://www.google.com/jsapi\"></script><script type = \"text/javascript\"> google.load(\"visualization\", \"1\", { packages:[\"corechart\"] }); google.setOnLoadCallback(drawChart);";
             myfile << "function drawChart() {var data = google.visualization.arrayToDataTable([['', 'Value']";
+#if OPENMP
+#pragma omp parallel for
+#endif
             for (int i = 0; i < data_dim; i++)
                 myfile << ",[, " << data[i] << "]";
             myfile << "]); var options = {title: 'Histogram',legend : { position: 'none' },histogram: { bucketSize: " << bucket_size <<" }, orientation: 'vertical',};";
