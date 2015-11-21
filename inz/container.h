@@ -8,6 +8,7 @@
 #include <memory>
 #include <assert.h>
 #include <omp.h>
+#include "container-helper.h"
 
 #define CRC_INIT 0xbaba7007
 #define OPENMP true
@@ -107,7 +108,6 @@ template <typename T_type, size_t T_dimension = 0> class container {
 
         template<typename... T_sizes> container(size_t size, T_sizes... sizes) {
             static_assert(T_dimension == 0 || 1 + sizeof...(T_sizes) == T_dimension, "invalid number of dimensions");
-//            static_assert(are_size_t_compatible<T_type, T_types...>::value, "one of arguments cannot be treated as size_t");
             dimension.resize(1 + sizeof... (T_sizes));
             dimension = { size, size_t(sizes)... };
         }
@@ -146,23 +146,6 @@ template <typename T_type, size_t T_dimension = 0> class container {
         bool operator!= (const container& arg) const
         {
             return !operator==(arg);
-        }
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        // CRC
-
-        uint32_t get_crc32(const void* buffer, size_t size, uint32_t crc_divisor) {
-            uint32_t crc = 0;
-            uint32_t i = 0;
-            const uint8_t *ptr = static_cast<const uint8_t *>(buffer);
-            for (i; i <= (uint32_t) size - 4; i += 4) {
-                crc = _mm_crc32_u32(crc, *reinterpret_cast<const uint32_t *>(ptr));
-                ptr += 4;
-            }
-            for (i; i < (uint32_t) size; ++i) {
-                crc = _mm_crc32_u32(crc, *(ptr++));
-            }
-            return crc;
         }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -230,6 +213,12 @@ template <typename T_type, size_t T_dimension = 0> class container {
             }
             static_assert(T_dimension == 0 || 1 + sizeof...(T_data) == data_number, "different number of dimensions");
             data = {d, T_type(ds)...};
+        }
+
+        //set from vector
+        template<typename T_type> void set_data_from_vector(std::vector<T_type> data_vector) {
+            static(dimension.size() == data_vector.size());
+            data = data_vector;
         }
 
 
