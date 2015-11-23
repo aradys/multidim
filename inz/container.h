@@ -217,7 +217,11 @@ template <typename T_type, size_t T_dimension = 0> class container {
 
         //set from vector
         template<typename T_type> void set_data_from_vector(std::vector<T_type> data_vector) {
-            static(dimension.size() == data_vector.size());
+            size_t data_number = 0;
+            if (dimension.size() != 0) {
+                data_number = this->count();
+            }
+            static(data_number == data_vector.size());
             data = data_vector;
         }
 
@@ -235,6 +239,7 @@ template <typename T_type, size_t T_dimension = 0> class container {
             result.data.resize(data_dim);
             result.dimension = dimension;
 #if OPENMP
+            std::cout << "OpenMP dziala!!!!!\n";
 #pragma omp parallel for
 #endif
             for (int i = 0; i < data_dim; ++i) {
