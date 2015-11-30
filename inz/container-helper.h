@@ -16,12 +16,9 @@ uint32_t get_crc32(const void* buffer, size_t size, uint32_t crc_divisor) {
 }
 
 //generating random containers
-template<typename T_type> std::vector<T_type> random_vector(uint32_t size_of_vector, uint32_t range) {
+template<typename T_type> std::vector<T_type> random_vector(int64_t size_of_vector, int64_t range) {
     std::vector<T_type> result;
-#if OPENMP
-#pragma omp parallel for
-#endif
-    for (uint32_t i = 0; i < size_of_vector;++i) {
+    for (int64_t i = 0; i < size_of_vector; ++i) {
         result.push_back( rand() % range);
     }
     return result;

@@ -13,19 +13,20 @@ int main() {
     bool saving = container2.save_to_file("container2");
 
     auto myf1 = container<int16_t>::load_from_file("container2");
-    container<int16_t> myf2("container2");*/
-
+    container<int16_t> myf2("container2");
+*/
     //big container testing
     const auto time_1 = std::chrono::high_resolution_clock::now();
 
-    container<int16_t> container1000_a(100, 100, 100);
-    std::vector<int16_t> vector1000_a = random_vector<int16_t>(1000000, 1000000);
+    container<int16_t> container1000_a(1000, 1000, 100);
+    std::vector<int16_t> vector1000_a = random_vector<int16_t>(100000000, 100);
     container1000_a.set_data_from_vector(vector1000_a);
+    std::cout << vector1000_a.max_size() << "\n";
 
     const auto time_2 = std::chrono::high_resolution_clock::now();
 
-    container<int16_t> container1000_b(100, 100, 100);
-    std::vector<int16_t> myVector(1000000);
+    container<int16_t> container1000_b(1000, 1000, 100);
+    std::vector<int16_t> myVector(100000000);
     std::generate(myVector.begin(), myVector.end(), std::rand);
     container1000_b.set_data_from_vector(myVector);
 

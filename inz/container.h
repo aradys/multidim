@@ -11,7 +11,6 @@
 #include "container-helper.h"
 
 #define CRC_INIT 0xbaba7007
-#define OPENMP true
 
 template <typename T_type, size_t T_dimension = 0> class container {
 
@@ -48,7 +47,7 @@ template <typename T_type, size_t T_dimension = 0> class container {
     // return count of elements in container
     size_t count() const {
         size_t result = 1;
-        for (auto index = 0u; index < dimension.size(); ++index) {
+        for (auto index = 0; index < dimension.size(); ++index) {
             result *= dimension[index];
         }
         return result;
@@ -238,8 +237,8 @@ template <typename T_type, size_t T_dimension = 0> class container {
             int data_dim = (int) this->count();
             result.data.resize(data_dim);
             result.dimension = dimension;
-#if OPENMP
-            std::cout << "OpenMP dziala!!!!!\n";
+#if _OPENMP
+            std::cout << "_OPENMP dziala!!!!!\n";
 #pragma omp parallel for
 #endif
             for (int i = 0; i < data_dim; ++i) {
@@ -255,7 +254,7 @@ template <typename T_type, size_t T_dimension = 0> class container {
 
             double mean_error = 0, sum = 0;
             int data_dim = (int) this->count();
-#if OPENMP
+#if _OPENMP
 #pragma omp parallel for
 #endif
             for (int i = 0; i < data_dim; ++i) {
@@ -274,7 +273,7 @@ template <typename T_type, size_t T_dimension = 0> class container {
 
             double max_absolute_error = 0, absoulte_error = 0;
             int data_dim = (int) this->count();
-#if OPENMP
+#if _OPENMP
 #pragma omp parallel for
 #endif
             for (int i = 0; i < data_dim; ++i) {
@@ -292,7 +291,7 @@ template <typename T_type, size_t T_dimension = 0> class container {
 
             double std_dev = 0, mean = this->get_mean_error(arg), tmp = 0;
             int data_dim = (int) this->count();
-#if OPENMP
+#if _OPENMP
 #pragma omp parallel for
 #endif
             for (int i = 0; i < data_dim; ++i) {
@@ -310,7 +309,7 @@ template <typename T_type, size_t T_dimension = 0> class container {
             myfile.open(filename);
             myfile << "<html><head><script type = \"text/javascript\" src = \"https://www.google.com/jsapi\"></script><script type = \"text/javascript\"> google.load(\"visualization\", \"1\", { packages:[\"corechart\"] }); google.setOnLoadCallback(drawChart);";
             myfile << "function drawChart() {var data = google.visualization.arrayToDataTable([['', 'Value']";
-#if OPENMP
+#if _OPENMP
 #pragma omp parallel for
 #endif
             for (int i = 0; i < data_dim; i++)
