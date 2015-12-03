@@ -224,7 +224,6 @@ template <typename T_type, size_t T_dimension = 0> class container {
             data = data_vector;
         }
 
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         //compare
 
@@ -237,7 +236,7 @@ template <typename T_type, size_t T_dimension = 0> class container {
             int data_dim = (int) this->count();
             result.data.resize(data_dim);
             result.dimension = dimension;
-#if _OPENMP
+#ifdef _OPENMP
             std::cout << "_OPENMP dziala!!!!!\n";
 #pragma omp parallel for
 #endif
@@ -254,7 +253,7 @@ template <typename T_type, size_t T_dimension = 0> class container {
 
             double mean_error = 0, sum = 0;
             int data_dim = (int) this->count();
-#if _OPENMP
+#ifdef _OPENMP
 #pragma omp parallel for
 #endif
             for (int i = 0; i < data_dim; ++i) {
@@ -273,7 +272,7 @@ template <typename T_type, size_t T_dimension = 0> class container {
 
             double max_absolute_error = 0, absoulte_error = 0;
             int data_dim = (int) this->count();
-#if _OPENMP
+#ifdef _OPENMP
 #pragma omp parallel for
 #endif
             for (int i = 0; i < data_dim; ++i) {
@@ -291,7 +290,7 @@ template <typename T_type, size_t T_dimension = 0> class container {
 
             double std_dev = 0, mean = this->get_mean_error(arg), tmp = 0;
             int data_dim = (int) this->count();
-#if _OPENMP
+#ifdef _OPENMP
 #pragma omp parallel for
 #endif
             for (int i = 0; i < data_dim; ++i) {
@@ -302,21 +301,30 @@ template <typename T_type, size_t T_dimension = 0> class container {
         }
 
 
-        //draw histogram in html
-        void draw_histogram(std::string filename, float bucket_size){
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        //drawing plots
+
+        //draw linear plot in html
+        void draw_linear(std::string filename) {
             std::ofstream myfile;
             int data_dim = (int) this->count();
             myfile.open(filename);
-            myfile << "<html><head><script type = \"text/javascript\" src = \"https://www.google.com/jsapi\"></script><script type = \"text/javascript\"> google.load(\"visualization\", \"1\", { packages:[\"corechart\"] }); google.setOnLoadCallback(drawChart);";
-            myfile << "function drawChart() {var data = google.visualization.arrayToDataTable([['', 'Value']";
-#if _OPENMP
-#pragma omp parallel for
-#endif
+            myfile << "<!DOCTYPE html><html><head><meta charset = 'utf-8'><script src = \"plotly-latest.min.js\"></script></head><body><div id=\"myDiv\" style=\"width:900px;height:500px;\"></div><script>var x = []; ";
             for (int i = 0; i < data_dim; i++)
-                myfile << ",[, " << data[i] << "]";
-            myfile << "]); var options = {title: 'Histogram',legend : { position: 'none' },histogram: { bucketSize: " << bucket_size <<" }, orientation: 'vertical',};";
-            myfile << "var chart = new google.visualization.Histogram(document.getElementById('chart_div'));chart.draw(data, options);}</script></head><body><div id = \"chart_div\" style = \"width: 900px; height: 500px;\"></div>";
-            myfile << "</body></html>";
+                myfile << "x[" << i << "]=" << data[i] << ";";
+            myfile << "var data = [ {y: x, type: 'scatter' }]; Plotly.newPlot('myDiv', data);</script></body></html>";
+            myfile.close();
+        }
+
+        //draw histogram in html
+        void draw_histogram(std::string filename) {
+            std::ofstream myfile;
+            int data_dim = (int) this->count();
+            myfile.open(filename);
+            myfile << "<!DOCTYPE html><html><head><meta charset = 'utf-8'><script src = \"plotly-latest.min.js\"></script></head><body><div id=\"myDiv\" style=\"width:900px;height:500px;\"></div><script>var x = []; ";
+            for (int i = 0; i < data_dim; i++)
+                myfile << "x[" << i << "]=" << data[i] << ";";
+            myfile << "var data = [ {x: x, type: 'histogram' }]; Plotly.newPlot('myDiv', data);</script></body></html>";
             myfile.close();
         }
 
