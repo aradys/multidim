@@ -4,7 +4,7 @@
 
 int main() {
     /*
-    container<float,3> container1(3);
+    container<float,3> container1(3,3,3);
     container<int16_t> container2(1,2,3);
     container2.set_data(9,8,7,6,5,4);
     container<int16_t> container3(container2);
@@ -14,19 +14,18 @@ int main() {
 
     auto myf1 = container<int16_t>::load_from_file("container2");
     container<int16_t> myf2("container2");
-*/
+    */
     //big container testing
     const auto time_1 = std::chrono::high_resolution_clock::now();
 
-    container<int16_t> container1000_a(1000, 1000, 100);
-    std::vector<int16_t> vector1000_a = random_vector<int16_t>(100000000, 100);
+    container<int16_t> container1000_a(100, 100, 100);
+    std::vector<int16_t> vector1000_a = random_vector<int16_t>(1000000, 100);
     container1000_a.set_data_from_vector(vector1000_a);
-    std::cout << vector1000_a.max_size() << "\n";
 
     const auto time_2 = std::chrono::high_resolution_clock::now();
 
-    container<int16_t> container1000_b(1000, 1000, 100);
-    std::vector<int16_t> myVector(100000000);
+    container<int16_t> container1000_b(100, 100, 100);
+    std::vector<int16_t> myVector(1000000);
     std::generate(myVector.begin(), myVector.end(), std::rand);
     container1000_b.set_data_from_vector(myVector);
 
@@ -54,9 +53,13 @@ int main() {
 
     const auto time5 = std::chrono::high_resolution_clock::now();
 
-    container1000_a.draw_histogram("histogram1.html", 7.5);
+    container100.draw_histogram("histogram.html");
 
     const auto time6 = std::chrono::high_resolution_clock::now();
+
+    container100.draw_linear("linear.html");
+
+    const auto time7 = std::chrono::high_resolution_clock::now();
 
     std::cout << "random_vector 1: " << std::chrono::duration<double, std::milli>(time_2 - time_1).count() << ".\n";
     std::cout << "random_vector 2: " << std::chrono::duration<double, std::milli>(time_3 - time_2).count() << ".\n";
@@ -65,6 +68,7 @@ int main() {
     std::cout << "get_mean_error: " << std::chrono::duration<double, std::milli>(time4 - time3).count() << ".\n";
     std::cout << "get_std_dev: " << std::chrono::duration<double, std::milli>(time5 - time4).count() << ".\n";
     std::cout << "draw_histogram: " << std::chrono::duration<double, std::milli>(time6 - time5).count() << ".\n";
+    std::cout << "draw_linear: " << std::chrono::duration<double, std::milli>(time7 - time6).count() << ".\n";
 
     system("pause");
     return 0;

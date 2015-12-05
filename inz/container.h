@@ -101,10 +101,6 @@ template <typename T_type, size_t T_dimension = 0> class container {
             load_internal(filename);
         }
 
-        container(size_t T_dimension) {
-            dimension.resize(T_dimension);
-        }
-
         template<typename... T_sizes> container(size_t size, T_sizes... sizes) {
             static_assert(T_dimension == 0 || 1 + sizeof...(T_sizes) == T_dimension, "invalid number of dimensions");
             dimension.resize(1 + sizeof... (T_sizes));
@@ -112,7 +108,6 @@ template <typename T_type, size_t T_dimension = 0> class container {
         }
 
         container(const container &arg) {
-            container_head = arg.container_head;
             dimension = arg.dimension;
             data = arg.data;
         }
@@ -136,8 +131,10 @@ template <typename T_type, size_t T_dimension = 0> class container {
             if (dimension != arg.dimension) {
                 return false;
             } else {
-                for (int i = 0; i < data.size; ++i)
+                int data_dim = (int) this->count();
+                for (int i = 0; i < data_dim; ++i) {
                     if (data[i] != arg.data[i]) return false;
+                }
             }
             return true;
         }
@@ -212,6 +209,18 @@ template <typename T_type, size_t T_dimension = 0> class container {
             }
             static_assert(T_dimension == 0 || 1 + sizeof...(T_data) == data_number, "different number of dimensions");
             data = {d, T_type(ds)...};
+        }
+
+        size_t get_dimension_size() {
+            return dimension.size();
+        }
+
+        size_t get_data_size() {
+            return data.size();
+        }
+
+        size_t get_one_data(int i) {
+            return data[i];
         }
 
         //set from vector
@@ -326,6 +335,24 @@ template <typename T_type, size_t T_dimension = 0> class container {
                 myfile << "x[" << i << "]=" << data[i] << ";";
             myfile << "var data = [ {x: x, type: 'histogram' }]; Plotly.newPlot('myDiv', data);</script></body></html>";
             myfile.close();
+        }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        //helper
+
+        //CRC
+        uint32_t get_crc32(const void* buffer, size_t size, uint32_t crc_divisor) {
+            uint32_t crc = 0;
+            uint32_t i = 0;
+            const uint8_t *ptr = static_cast<const uint8_t *>(buffer);
+            for (i; i <= (uint32_t)size - 4; i += 4) {
+                crc = _mm_crc32_u32(crc, *reinterpret_cast<const uint32_t *>(ptr));
+                ptr += 4;
+            }
+            for (i; i < (uint32_t)size; ++i) {
+                crc = _mm_crc32_u32(crc, *(ptr++));
+            }
+            return crc;
         }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
