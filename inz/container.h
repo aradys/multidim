@@ -79,13 +79,12 @@ template <typename T_type, size_t T_dimension = 0> class container {
 
             // create container & load data into it
             data.resize(this->count());
-            auto container_size = this->count() * sizeof(T_type);
-            file.read(reinterpret_cast<char *>(&data[0]), container_size);
-            if (read_crc() != get_crc32(&data[0], container_size, CRC_INIT)) throw("container data CRC mismatch");
+            auto file_data_size = this->count() * sizeof(T_type);
+            file.read(reinterpret_cast<char *>(&data[0]), file_data_size);
+            if (read_crc() != get_crc32(&data[0], file_data_size, CRC_INIT)) throw("container data CRC mismatch");
 
             // return result
-            auto result = this;
-            return result;
+            return this;
         }
         catch (...) {
             return false;
@@ -183,15 +182,14 @@ template <typename T_type, size_t T_dimension = 0> class container {
                 write_crc(get_crc32(&container_head, sizeof(container_head), CRC_INIT));
 
                 // write size array with 32-bit crc
-                const char *file_dimension = reinterpret_cast<const char *>(&(dimension[0]));
                 const auto file_dimension_size = dimension_size * sizeof(size_t);
-                file.write(file_dimension, file_dimension_size);
-                write_crc(get_crc32(file_dimension, file_dimension_size, CRC_INIT));
+                file.write(reinterpret_cast<const char *>(&(dimension[0])), file_dimension_size);
+                write_crc(get_crc32(&(dimension[0]), file_dimension_size, CRC_INIT));
 
                 // write data with 32-bit crc
-                size_t buffer_size = count()*sizeof(T_type);
-                file.write(reinterpret_cast<char *>(&(data[0])), buffer_size);
-                write_crc(get_crc32(&(data[0]), buffer_size, CRC_INIT));
+                size_t file_data_size = count()*sizeof(T_type);
+                file.write(reinterpret_cast<char *>(&(data[0])), file_data_size);
+                write_crc(get_crc32(&(data[0]), file_data_size, CRC_INIT));
             }
             catch (...) {
                 return false;

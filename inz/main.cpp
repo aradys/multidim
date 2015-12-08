@@ -3,7 +3,7 @@
 #include <chrono>
 
 int main() {
-    /*
+
     container<float,3> container1(3,3,3);
     container<int16_t> container2(1,2,3);
     container2.set_data(9,8,7,6,5,4);
@@ -14,20 +14,21 @@ int main() {
 
     auto myf1 = container<int16_t>::load_from_file("container2");
     container<int16_t> myf2("container2");
-    */
+
     //big container testing
     const auto time_1 = std::chrono::high_resolution_clock::now();
 
-    container<int16_t> container1000_a(100, 100, 100);
-    std::vector<int16_t> vector1000_a = random_vector<int16_t>(1000000, 100);
-    container1000_a.set_data_from_vector(vector1000_a);
+    container<int16_t> kontener1(10, 1, 1);
+    std::vector<int16_t> vector1(10);
+    std::generate(vector1.begin(), vector1.end(), std::rand);
+    kontener1.set_data_from_vector(vector1);
 
     const auto time_2 = std::chrono::high_resolution_clock::now();
 
-    container<int16_t> container1000_b(100, 100, 100);
-    std::vector<int16_t> myVector(1000000);
-    std::generate(myVector.begin(), myVector.end(), std::rand);
-    container1000_b.set_data_from_vector(myVector);
+    container<int16_t> kontener2(10, 1, 1);
+    std::vector<int16_t> wektor2(10);
+    std::generate(wektor2.begin(), wektor2.end(), std::rand);
+    kontener2.set_data_from_vector(wektor2);
 
     const auto time_3 = std::chrono::high_resolution_clock::now();
 
@@ -37,19 +38,19 @@ int main() {
 
     const auto time1 = std::chrono::high_resolution_clock::now();
 
-    auto diff = container1000_a.get_difference(container1000_b);
+    auto diff = kontener1.get_difference(kontener2);
 
     const auto time2 = std::chrono::high_resolution_clock::now();
 
-    auto abs_err = container1000_a.get_max_absolute_error(container1000_b);
+    auto abs_err = kontener1.get_max_absolute_error(kontener2);
 
     const auto time3 = std::chrono::high_resolution_clock::now();
 
-    auto mean_err = container1000_a.get_mean_error(container1000_b);
+    auto mean_err = kontener1.get_mean_error(kontener2);
 
     const auto time4 = std::chrono::high_resolution_clock::now();
 
-    auto std_dev = container1000_a.get_std_dev(container1000_b);
+    auto std_dev = kontener1.get_std_dev(kontener2);
 
     const auto time5 = std::chrono::high_resolution_clock::now();
 
@@ -61,14 +62,17 @@ int main() {
 
     const auto time7 = std::chrono::high_resolution_clock::now();
 
-    std::cout << "random_vector 1: " << std::chrono::duration<double, std::milli>(time_2 - time_1).count() << ".\n";
-    std::cout << "random_vector 2: " << std::chrono::duration<double, std::milli>(time_3 - time_2).count() << ".\n";
-    std::cout << "get_difference: " << std::chrono::duration<double, std::milli>(time2-time1).count() << ".\n";
-    std::cout << "get_max_absolute_error: " << std::chrono::duration<double, std::milli>(time3 - time2).count() << ".\n";
-    std::cout << "get_mean_error: " << std::chrono::duration<double, std::milli>(time4 - time3).count() << ".\n";
-    std::cout << "get_std_dev: " << std::chrono::duration<double, std::milli>(time5 - time4).count() << ".\n";
-    std::cout << "draw_histogram: " << std::chrono::duration<double, std::milli>(time6 - time5).count() << ".\n";
-    std::cout << "draw_linear: " << std::chrono::duration<double, std::milli>(time7 - time6).count() << ".\n";
+    std::ofstream wyniki;
+    wyniki.open("wyniki.txt");
+
+    wyniki << "random_vector 1: " << std::chrono::duration<double, std::milli>(time_2 - time_1).count() << "\n";
+    wyniki << "random_vector 2: " << std::chrono::duration<double, std::milli>(time_3 - time_2).count() << "\n";
+    wyniki << "get_difference: " << std::chrono::duration<double, std::milli>(time2-time1).count() << "\n";
+    wyniki << "get_max_absolute_error: " << std::chrono::duration<double, std::milli>(time3 - time2).count() << "\n";
+    wyniki << "get_mean_error: " << std::chrono::duration<double, std::milli>(time4 - time3).count() << "\n";
+    wyniki << "get_std_dev: " << std::chrono::duration<double, std::milli>(time5 - time4).count() << "\n";
+    wyniki << "draw_histogram: " << std::chrono::duration<double, std::milli>(time6 - time5).count() << "\n";
+    wyniki << "draw_linear: " << std::chrono::duration<double, std::milli>(time7 - time6).count() << "\n";
 
     system("pause");
     return 0;
