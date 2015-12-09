@@ -20,11 +20,11 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="container.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="container-helper.h">
       <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="container.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

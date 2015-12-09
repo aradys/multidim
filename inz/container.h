@@ -119,14 +119,16 @@ template <typename T_type, size_t T_dimension = 0> class container {
                 dimension.resize(source.dimension);
                 dimension = source.dimension;
             }
+            for (int i = 0; i < dimension.size; ++i) {
+                data[i] = source.dimension[i];
+            }
             for (int i = 0; i < data.size; ++i) {
                 data[i] = source.data[i];
             }
             return *this;
         }
 
-        bool operator== (const container& arg) const
-        {
+        bool operator== (const container& arg) const {
             if (dimension != arg.dimension) {
                 return false;
             } else {
@@ -138,8 +140,7 @@ template <typename T_type, size_t T_dimension = 0> class container {
             return true;
         }
 
-        bool operator!= (const container& arg) const
-        {
+        bool operator!= (const container& arg) const {
             return !operator==(arg);
         }
 
@@ -295,16 +296,16 @@ template <typename T_type, size_t T_dimension = 0> class container {
             assert(dimension == arg.dimension);
             assert(typeid(data[0]) == typeid(arg.data[0]));
 
-            double std_dev = 0, mean = this->get_mean_error(arg), tmp = 0;
+            double std_dev = 0, mean = this->get_mean_error(arg), sum = 0;
             int data_dim = (int) this->count();
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
             for (int i = 0; i < data_dim; ++i) {
-                tmp += pow(((data[i] - arg.data[i]) - mean), 2);
+                sum += pow(((data[i] - arg.data[i]) - mean), 2);
             }
 
-            return std_dev = pow( tmp / data_dim, 0.5);
+            return std_dev = pow( sum / data_dim, 0.5);
         }
 
 
@@ -333,24 +334,6 @@ template <typename T_type, size_t T_dimension = 0> class container {
                 myfile << "x[" << i << "]=" << data[i] << ";";
             myfile << "var data = [ {x: x, type: 'histogram' }]; Plotly.newPlot('myDiv', data);</script></body></html>";
             myfile.close();
-        }
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        //helper
-
-        //CRC
-        uint32_t get_crc32(const void* buffer, size_t size, uint32_t crc_divisor) {
-            uint32_t crc = 0;
-            uint32_t i = 0;
-            const uint8_t *ptr = static_cast<const uint8_t *>(buffer);
-            for (i; i <= (uint32_t)size - 4; i += 4) {
-                crc = _mm_crc32_u32(crc, *reinterpret_cast<const uint32_t *>(ptr));
-                ptr += 4;
-            }
-            for (i; i < (uint32_t)size; ++i) {
-                crc = _mm_crc32_u32(crc, *(ptr++));
-            }
-            return crc;
         }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

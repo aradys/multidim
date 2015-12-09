@@ -12,7 +12,12 @@ BOOST_AUTO_TEST_CASE(test_set_data)
     container<int16_t> test_container(1, 2, 3);
     test_container.set_data(1, 2, 3, 4, 5, 6);
 
+    BOOST_CHECK(test_container.get_one_data(0) == 1);
+    BOOST_CHECK(test_container.get_one_data(1) == 2);
+    BOOST_CHECK(test_container.get_one_data(2) == 3);
     BOOST_CHECK(test_container.get_one_data(3) == 4);
+    BOOST_CHECK(test_container.get_one_data(4) == 5);
+    BOOST_CHECK(test_container.get_one_data(5) == 6);
 }
 BOOST_AUTO_TEST_CASE(test_data_size)
 {
@@ -25,7 +30,7 @@ BOOST_AUTO_TEST_CASE(test_set_data_from_vector)
 {
     container<int16_t> test_container(5, 5, 5);
     std::vector<int16_t> test_vector;
-    test_vector = random_vector<int16_t>(125, 10);
+    test_vector = random_vector<int16_t>(125, 100);
     test_container.set_data_from_vector(test_vector);
 
     BOOST_CHECK(test_container.get_dimension_size() == 3);
