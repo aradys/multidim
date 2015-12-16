@@ -20,7 +20,7 @@ template <typename T_type, size_t T_dimension = 0> class container {
     //pragma to read exact number of bytes
 #pragma pack(push,1)
     struct head {
-        int        magic = 'CNT';                 // check if it is container
+        int        magic = 'CNTR';                 // check if it is container
         int        data_type;                     // type of data
         uint8_t    version = 1;                   // 1
         size_t     dimension;                     // size of dimension vector
